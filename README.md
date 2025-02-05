@@ -1,5 +1,6 @@
 # Task Manager Application(Assignment: BaseRock Assignment: "Task Mgmt Dashboard")
 
+#Project is deployed on vercel: https://task-management-assignmnt.vercel.app/
 
 A **Task Manager Application** built using **React, TypeScript, and Axios** for seamless API communication. This application enables users to manage tasks efficiently with features like task creation, editing, deletion, reordering, and a smooth drag-and-drop experience.
 
