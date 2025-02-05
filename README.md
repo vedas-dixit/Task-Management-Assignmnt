@@ -35,8 +35,7 @@ A **Task Manager Application** built using **React, TypeScript, and Axios** for 
 - **react-beautiful-dnd** (for drag-and-drop functionality)
 - **Styled Components / Tailwind CSS** (for styling)
 
-## 📸 Screenshots
-(Include screenshots of your app here)
+
 
 ## 🚀 Getting Started
 ### 🔧 Installation
