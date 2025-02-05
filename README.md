@@ -53,6 +53,9 @@ A **Task Manager Application** built using **React, TypeScript, and Axios** for 
    ```
 
 ### ▶️ Running the Application
+
+Add this to .env.locak file: NEXT_PUBLIC_BASE_URL: NEXT_PUBLIC_BASE_URL=https://67a232f8409de5ed5254a352.mockapi.io/tasks
+
 Start the development server:
 ```sh
 npm run dev
