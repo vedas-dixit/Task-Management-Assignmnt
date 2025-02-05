@@ -18,9 +18,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Task, validateTask } from "@/hooks/Query";
-
-const LOCAL_STORAGE_KEY = 'taskManager';
+import { Task, fetchTasks, createTask, updateTask, deleteTask, validateTask } from "@/hooks/Query";
 
 interface SortableTaskItemProps {
   task: Task;
@@ -50,7 +48,7 @@ const SortableTaskItem: React.FC<SortableTaskItemProps> = ({ task, isDarkMode, o
       style={style}
       className={`p-6 rounded-lg backdrop-blur-sm border ${
         task.status === 'COMPLETED'
-          ? (isDarkMode ? 'bg-green-500/40 border-green-500/20' : 'bg-green-300 border-green-200')
+          ? (isDarkMode ? 'bg-green-500/10 border-green-500/20' : 'bg-green-100 border-green-200')
           : (isDarkMode ? 'bg-white/10 border-white/10' : 'bg-white border-gray-200')
       } hover:shadow-lg transition-all duration-300`}
     >
@@ -60,7 +58,13 @@ const SortableTaskItem: React.FC<SortableTaskItemProps> = ({ task, isDarkMode, o
           <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-700'} mb-4`}>{task.description}</p>
         </div>
         <div className="flex items-center space-x-2">
-          
+          <button
+            {...attributes}
+            {...listeners}
+            className={`p-2 rounded-lg backdrop-blur-sm ${isDarkMode ? 'bg-white/10 hover:bg-white/20' : 'bg-gray-100 hover:bg-gray-200'} transition-all duration-300 cursor-grab active:cursor-grabbing`}
+          >
+            <FaGripVertical className={isDarkMode ? 'text-gray-300' : 'text-gray-500'} />
+          </button>
           <button
             onClick={() => onToggleStatus(task.id!)}
             className={`p-2 rounded-lg backdrop-blur-sm ${isDarkMode ? 'bg-white/10 hover:bg-white/20' : 'bg-gray-100 hover:bg-gray-200'} transition-all duration-300`}
@@ -78,13 +82,6 @@ const SortableTaskItem: React.FC<SortableTaskItemProps> = ({ task, isDarkMode, o
             className={`p-2 rounded-lg backdrop-blur-sm ${isDarkMode ? 'bg-white/10 hover:bg-white/20' : 'bg-gray-100 hover:bg-gray-200'} transition-all duration-300`}
           >
             <FaTrash className="text-red-500" />
-          </button>
-          <button
-            {...attributes}
-            {...listeners}
-            className={`p-2 rounded-lg backdrop-blur-sm ${isDarkMode ? 'bg-white/10 hover:bg-white/20' : 'bg-gray-100 hover:bg-gray-200'} transition-all duration-300 cursor-grab active:cursor-grabbing`}
-          >
-            <FaGripVertical className={isDarkMode ? 'text-gray-300' : 'text-gray-500'} />
           </button>
         </div>
       </div>
@@ -109,20 +106,14 @@ const TaskComponent: React.FC = () => {
   );
 
   useEffect(() => {
-    const savedTasks = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (savedTasks) {
-      setTasks(JSON.parse(savedTasks));
-    }
+    const loadTasks = async () => {
+      const fetchedTasks = await fetchTasks();
+      setTasks(fetchedTasks);
+    };
+    loadTasks();
   }, []);
 
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(tasks));
-    }, 500);
-    return () => clearTimeout(timeout);
-  }, [tasks]);
-
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     
     if (over && active.id !== over.id) {
@@ -132,16 +123,16 @@ const TaskComponent: React.FC = () => {
         
         return arrayMove(tasks, oldIndex, newIndex);
       });
+      
     }
   };
 
-  const handleCreateTask = () => {
+  const handleCreateTask = async () => {
     if (!validateTask(newTask)) {
       alert('Task title cannot be empty!');
       return;
     }
-    const newId = Math.max(0, ...tasks.map(t => t.id || 0)) + 1;
-    const createdTask = { ...newTask, id: newId };
+    const createdTask = await createTask(newTask);
     setTasks([...tasks, createdTask]);
     setNewTask({ title: '', description: '', status: 'PENDING' });
   };
@@ -150,18 +141,18 @@ const TaskComponent: React.FC = () => {
     setEditTask(task);
   };
 
-  const handleUpdateTask = () => {
+  const handleUpdateTask = async () => {
     if (!editTask || !validateTask(editTask)) return;
-    setTasks(tasks.map((task) => (task.id === editTask.id ? editTask : task)));
+    const updatedTask = await updateTask(editTask.id!, editTask);
+    setTasks(tasks.map((task) => (task.id === updatedTask.id ? updatedTask : task)));
     setEditTask(null);
   };
 
-  const handleToggleStatus = (id: number) => {
-    setTasks(tasks.map((task) => 
-      task.id === id 
-        ? { ...task, status: task.status === 'PENDING' ? 'COMPLETED' : 'PENDING' }
-        : task
-    ));
+  const handleToggleStatus = async (id: number) => {
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return;
+    const updatedTask = await updateTask(id, { status: task.status === 'PENDING' ? 'COMPLETED' : 'PENDING' });
+    setTasks(tasks.map((t) => (t.id === id ? updatedTask : t)));
   };
 
   const handleDeleteConfirm = (id: number) => {
@@ -169,8 +160,9 @@ const TaskComponent: React.FC = () => {
     setIsDeleteConfirm(true);
   };
 
-  const handleDeleteTask = () => {
+  const handleDeleteTask = async () => {
     if (taskToDelete === null) return;
+    await deleteTask(taskToDelete);
     setTasks(tasks.filter((t) => t.id !== taskToDelete));
     setIsDeleteConfirm(false);
     setTaskToDelete(null);
